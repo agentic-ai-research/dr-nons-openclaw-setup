@@ -88,18 +88,18 @@ I stopped thinking about the model. That's the win.
 Telegram / WhatsApp / iMessage
         │
         ▼
-   relay-bridge.py          ← polls Fly.io relay, forwards to localhost
+   relay-bridge.py          ← polls Fly.io relay, forwards to localhost (60s timeout)
         │
         ▼
    OpenClaw Gateway          ← LaunchAgent, starts on boot, port 18789
         │
         ▼
-   OpenAI GPT-4o-mini        ← primary model (cloud API)
+   OpenAI GPT-4o-mini        ← primary model, vision-enabled (cloud API)
         │
    Ollama (fallback)         ← qwen2.5:7b or phi4-mini, local only
 ```
 
-OpenClaw handles the conversation. GPT-4o-mini generates the response. Ollama stays available as a fallback for things I want to run locally (image description, quick one-off tasks where latency doesn't matter).
+OpenClaw handles the conversation. GPT-4o-mini generates the response. Ollama stays available as a fallback for things I want to run locally.
 
 ### openclaw.json — The Core Config
 
@@ -129,7 +129,7 @@ OpenClaw handles the conversation. GPT-4o-mini generates the response. Ollama st
             "id": "gpt-4o-mini",
             "name": "GPT-4o Mini",
             "reasoning": false,
-            "input": ["text"],
+            "input": ["text", "image"],
             "cost": {
               "input": 0.15,
               "output": 0.6,
@@ -154,15 +154,6 @@ OpenClaw handles the conversation. GPT-4o-mini generates the response. Ollama st
             "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 },
             "contextWindow": 32768,
             "maxTokens": 8192
-          },
-          {
-            "id": "phi4-mini:latest",
-            "name": "Phi 4 Mini",
-            "reasoning": false,
-            "input": ["text"],
-            "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 },
-            "contextWindow": 16384,
-            "maxTokens": 4096
           }
         ]
       }
@@ -175,6 +166,7 @@ OpenClaw handles the conversation. GPT-4o-mini generates the response. Ollama st
 - `"api": "openai-responses"` — NOT `"openai"`. That's not a valid value and will throw a schema error with zero explanation.
 - `"baseUrl"` — Required even for standard OpenAI. OpenClaw won't infer it.
 - `"primary": "openai/gpt-4o-mini"` — The prefix `openai/` must match the provider key exactly.
+- `"input": ["text", "image"]` — Required to enable vision. Without this, the bot can't read business cards or screenshots.
 - No `fallback` key inside model entries. OpenClaw's schema rejects unknown fields silently — or rather, noisily at restart.
 
 ### Ollama Models Installed
@@ -184,13 +176,9 @@ These stay installed for occasional local use, but none of them are the primary:
 | Model | Size | Use |
 |-------|------|-----|
 | `phi4-mini:latest` | 2.5GB | Lightest option, fast, good for simple tasks |
-| `phi4-mini-16k:latest` | 2.5GB | Same, extended context |
 | `qwen2.5:7b` | 4.7GB | Solid general model, OpenClaw fallback |
 | `qwen2.5-coder:7b` | 4.7GB | Coding-specific, used in Continue.dev |
-| `qwen32k:latest` | 4.7GB | Extended context variant |
-| `qwen2.5-coder-32k:latest` | 4.7GB | Extended context coder |
 | `deepseek-r1:7b` | 4.7GB | Reasoning, Continue.dev only |
-| `qwen3.5:9b` | 6.6GB | Newer, better quality than 7B |
 | `qwen2.5-coder:14b` | 9.0GB | **Do not use with OpenClaw on 16GB** |
 
 The 14B model is there for focused, manual coding sessions in Continue.dev — close everything else first, run it, close it when done. It is never the OpenClaw primary.
@@ -201,35 +189,50 @@ The 14B model is there for focused, manual coding sessions in Continue.dev — c
 
 OpenClaw's power comes from skills — Python scripts the bot runs when you ask for something. These live in `~/.openclaw/workspace/skills/`.
 
+### Core Skills (ClawHub)
+
 | Skill | What It Does |
 |-------|-------------|
 | `gmail` | Read, search, send email from Google account |
 | `gcal` | View and create Google Calendar events (Bangkok timezone) |
 | `contacts` | Save and search Google Contacts |
 | `file-organizer` | Sort files sent by user into Google Drive automatically |
-| `morning-briefing` | Daily 7am briefing: weather, markets, calendar, GitHub, AI news, email digest |
-| `ocr-contacts` | Scan business card photo → extract → save to Google Contacts |
+| `ocr-contacts` | Scan business card photo → extract → save to Google Contacts (Tesseract + GPT-4o-mini vision fallback) |
 | `video-download` | Download video from YouTube/Twitter/TikTok/Instagram via yt-dlp |
-| `web-search` | Search the web |
+| `web-search` | Search the web via Tavily |
 | `web-fetch` | Fetch and summarize a URL |
-| `screenshot` | Screenshot a URL |
 | `summarize` | Summarize any text or document |
 | `translate` | Translate text |
 | `remember` | Store and recall notes persistently |
 | `photo-vault` | Save photos to Google Drive |
 | `illustrate` | Generate images |
 | `ask` | One-shot GPT-4o-mini question outside of conversation context |
+| `agent-browser-clawdbot` | Headless Chromium browser automation |
+| `self-improving-proactive-agent` | Learns from corrections, builds persistent memory in `~/self-improving/` |
+| `tavily-web-search-for-openclaw` | Tavily API search (requires `TAVILY_API_KEY` in LaunchAgent plist) |
+| `extract-youtube-transcript` | Pull full transcript from any YouTube video |
+| `personal-ontology` | Palantir-style persona graph — beliefs, values, goals, writing style |
+
+### Custom Skills (Built In-House)
+
+| Skill | What It Does |
+|-------|-------------|
+| `url-screenshot` | Screenshot any URL with headless Chromium, summarize with GPT-4o-mini vision |
+| `youtube-comment` | Transcribe YouTube video → reason in your voice → optionally post comment |
+| `flight-monitor` | Track flight routes, alert on price drops, integrates with morning briefing |
+| `morning-briefing` | Daily 7am briefing: weather, markets, calendar, GitHub, AI news, email digest, flight alerts |
 
 ### Morning Briefing
 
 Runs at 7:00 AM Bangkok time (00:00 UTC) via cron. Covers:
 
-- Bangkok weather + AQI (Open-Meteo + WAQI)
+- Bangkok weather + AQI (Open-Meteo primary, wttr.in fallback)
 - Markets: BTC price, Gold, Oil (WTI), USD/THB rate
 - Today's Google Calendar events
 - Recent GitHub repo activity
 - Top AI/tech news filtered from Hacker News (score ≥ 50, AI-keyword matched)
 - Newsletter digest: unread Gmail newsletters summarized to 3 bullets each via GPT-4o-mini
+- Flight alerts: any tracked routes below price threshold
 
 Cron entry:
 ```
@@ -237,6 +240,91 @@ Cron entry:
 ```
 
 Estimated cost per briefing: **~$0.003**. Daily for a year: **~$1.10**.
+
+### OCR Contacts — How It Works
+
+The `ocr-contacts` skill uses a two-pass approach for reliability:
+
+1. **Tesseract OCR** extracts raw text from the image
+2. **GPT-4o-mini parses** the text into structured contact fields
+3. If no valid contact is found (complex layout, compressed JPEG, unusual font) → **GPT-4o-mini vision fallback**: sends the image directly instead of the text
+4. Saves automatically to Google Contacts via People API
+
+This means business cards with tricky layouts (rotated text, minimal contrast, Thai characters) still get captured correctly.
+
+### URL Screenshot
+
+Send the bot any URL and ask it to screenshot or summarize the page:
+
+```
+Screenshot techcrunch.com and summarize the top 3 stories
+```
+
+Pipeline: `agent-browser open <url>` → 3s render wait → `agent-browser screenshot <path>` → GPT-4o-mini vision summary → reply.
+
+### YouTube Comment in Your Voice
+
+```
+Watch this video and write a comment I would post: https://youtube.com/...
+```
+
+Pipeline: extract transcript → load persona from `~/self-improving/memory.md` → GPT-4o-mini generates comment in your style → dry-run shown first, `--post` flag required to actually post.
+
+Requires: YouTube Data API v3 enabled in Google Console + `youtube.force-ssl` OAuth scope.
+
+### Flight Monitor
+
+```
+Track BKK to London under 35000 THB
+Check my flights
+```
+
+Routes stored in `~/.openclaw/workspace/state/flights.json`. Scrapes Google Flights via headless browser. Alerts appear in morning briefing when prices drop below threshold.
+
+---
+
+## Files That Matter
+
+```
+~/.openclaw/
+├── openclaw.json                          ← Main config. Touch carefully.
+├── workspace/
+│   ├── SOUL.md                            ← Bot personality + rules (with absolute skill paths)
+│   ├── MEMORY.md                          ← Persistent facts about you
+│   ├── AGENTS.md                          ← Agent behavior rules (keep trimmed)
+│   ├── HEARTBEAT.md                       ← Background monitoring rules
+│   └── skills/                            ← All skill scripts
+│       ├── gmail/
+│       ├── gcal/
+│       ├── contacts/
+│       ├── morning-briefing/
+│       ├── ocr-contacts/
+│       ├── url-screenshot/
+│       ├── youtube-comment/
+│       ├── flight-monitor/
+│       ├── personal-ontology/
+│       ├── self-improving-proactive-agent/
+│       └── ...
+│   └── state/
+│       └── flights.json                   ← Tracked flight routes + last prices
+├── credentials/
+│   ├── google-oauth.json                  ← Google OAuth app credentials (NEVER in cloud sync)
+│   ├── google-token.pkl                   ← Google OAuth token (10 scopes incl. YouTube write)
+│   └── github-token.txt                   ← GitHub PAT
+├── agents/main/sessions/
+│   └── sessions.json                      ← Session registry. Wipe to reset.
+├── scripts/
+│   ├── reset-session.sh                   ← The fix for most bot problems
+│   ├── google-auth.py                     ← One-time OAuth setup
+│   └── organize-downloads.py             ← Bulk sort ~/Downloads into Google Drive
+└── logs/
+    └── morning-briefing.log               ← Briefing output
+~/self-improving/
+├── memory.md                              ← Persistent persona: values, style, preferences
+├── corrections.md                         ← Bot learns from your corrections
+├── domains/                               ← Topic-specific knowledge files
+└── projects/                              ← Per-project context
+```
 
 ---
 
@@ -253,6 +341,9 @@ Estimated cost per briefing: **~$0.003**. Daily for a year: **~$1.10**.
 | `api: "openai" is not a valid enum` | Wrong `api` value for OpenAI provider | Use `"openai-responses"` or `"openai-completions"` |
 | Bot doesn't pick up new skills | Stale session snapshot | Reset: `bash ~/.openclaw/scripts/reset-session.sh` |
 | Port 8787 already in use on restart | Gateway killed before it released the port | Unload LaunchAgent first, wait 5s, then kill port 8787, then reload |
+| Bot silent despite HTTP 200 from relay | Session JSONL too large (240KB+), context bloat | Session reset. Normal after heavy testing sessions. |
+| Business card OCR saves first card, not second | Tesseract fails on compressed JPEG / complex layout | Fixed: vision fallback added to `ocr_contacts.py` |
+| relay-bridge `forward error: timed out` | Default 10s timeout too short for LLM processing | Fixed: both `urlopen` calls changed to `timeout=60` |
 
 ---
 
@@ -262,11 +353,15 @@ Estimated cost per briefing: **~$0.003**. Daily for a year: **~$1.10**.
 
 2. **Get an OpenAI key before setting up OpenClaw.** The onboarding assumes you have a model ready. GPT-4o-mini costs nothing at this scale. Don't try to cheap out with Groq free tier — the token limit makes it incompatible.
 
-3. **Trim system prompt files before the first session.** AGENTS.md and HEARTBEAT.md shipped with content that was never relevant to my setup — Discord emoji reactions, ElevenLabs TTS config, email monitoring for a tool I don't have. That's ~2,000 extra tokens on every single request. Audit and strip before first use.
+3. **Enable `"input": ["text", "image"]` from the start.** Without this, the bot can't read images, business cards, or screenshots. One line in openclaw.json, but easy to miss.
 
-4. **Wipe sessions.json completely when installing new skills.** OpenClaw freezes the skill list in a snapshot at session start. If you install a skill and the bot doesn't use it, the session is stale. Don't just restart the gateway — wipe the snapshot too.
+4. **Trim system prompt files before the first session.** AGENTS.md and HEARTBEAT.md shipped with content that was never relevant to my setup — Discord emoji reactions, ElevenLabs TTS config, email monitoring for a tool I don't have. That's ~2,000 extra tokens on every single request. Audit and strip before first use.
 
-5. **Never add unknown fields to openclaw.json.** The schema validator is strict and the error messages are bad. Test every config change with `openclaw doctor` before restarting the gateway.
+5. **Wipe sessions.json completely when installing new skills.** OpenClaw freezes the skill list in a snapshot at session start. If you install a skill and the bot doesn't use it, the session is stale. Don't just restart the gateway — wipe the snapshot too.
+
+6. **Never add unknown fields to openclaw.json.** The schema validator is strict and the error messages are bad. Test every config change with `openclaw doctor` before restarting the gateway.
+
+7. **Keep Google OAuth credentials out of cloud-synced folders.** The `client_secret_*.json` file from Google Console should live in `~/.openclaw/credentials/`, not `~/Downloads/` which syncs to Drive.
 
 ---
 
@@ -279,38 +374,11 @@ Based on actual usage at moderate volume:
 | Morning briefing (daily) | ~900k input | $0.135 |
 | Casual bot conversations (10–20/day) | ~600k input | $0.09 |
 | Skill calls (calendar, email, etc.) | ~300k input | $0.045 |
-| **Total** | **~1.8M tokens** | **~$0.27/month** |
+| OCR + vision (business cards, screenshots) | ~200k input | $0.03 |
+| YouTube transcripts + comments | ~100k input | $0.015 |
+| **Total** | **~2.1M tokens** | **~$0.32/month** |
 
 Worst case with heavy use: under **$2/month**. That's less than a single ChatGPT message with image generation.
-
----
-
-## Files That Matter
-
-```
-~/.openclaw/
-├── openclaw.json                          ← Main config. Touch carefully.
-├── workspace/
-│   ├── SOUL.md                            ← Bot personality + rules
-│   ├── MEMORY.md                          ← Persistent facts about you
-│   ├── AGENTS.md                          ← Agent behavior rules (keep trimmed)
-│   ├── HEARTBEAT.md                       ← Background monitoring rules
-│   └── skills/                            ← All skill scripts
-│       ├── gmail/
-│       ├── gcal/
-│       ├── contacts/
-│       ├── morning-briefing/
-│       └── ...
-├── credentials/
-│   ├── google-token.pkl                   ← Google OAuth token (9 scopes)
-│   └── github-token.txt                   ← GitHub PAT
-├── agents/main/sessions/
-│   └── sessions.json                      ← Session registry. Wipe to reset.
-├── scripts/
-│   └── reset-session.sh                   ← The fix for most bot problems
-└── logs/
-    └── morning-briefing.log               ← Briefing output
-```
 
 ---
 

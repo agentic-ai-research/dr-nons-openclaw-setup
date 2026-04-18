@@ -42,7 +42,7 @@
             "id": "gpt-4o-mini",
             "name": "GPT-4o Mini",
             "reasoning": false,
-            "input": ["text"],
+            "input": ["text", "image"],
             "cost": {
               "input": 0.15,
               "output": 0.6,
