@@ -1,0 +1,84 @@
+{
+  "gateway": {
+    "mode": "local",
+    "auth": {
+      "mode": "token",
+      "token": "YOUR_GATEWAY_TOKEN"
+    }
+  },
+  "plugins": {
+    "entries": {
+      "ollama": { "enabled": true },
+      "active-memory": { "enabled": false },
+      "openai": { "enabled": true }
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "openai/gpt-4o-mini"
+      },
+      "llm": {
+        "idleTimeoutSeconds": 0
+      },
+      "compaction": {
+        "reserveTokensFloor": 8000
+      },
+      "models": {
+        "openai/gpt-4o-mini": {},
+        "ollama/qwen2.5:7b": {},
+        "ollama/phi4-mini": {}
+      }
+    }
+  },
+  "models": {
+    "providers": {
+      "openai": {
+        "baseUrl": "https://api.openai.com/v1",
+        "api": "openai-responses",
+        "apiKey": "YOUR_OPENAI_KEY_HERE",
+        "models": [
+          {
+            "id": "gpt-4o-mini",
+            "name": "GPT-4o Mini",
+            "reasoning": false,
+            "input": ["text"],
+            "cost": {
+              "input": 0.15,
+              "output": 0.6,
+              "cacheRead": 0.075,
+              "cacheWrite": 0
+            },
+            "contextWindow": 128000,
+            "maxTokens": 16384
+          }
+        ]
+      },
+      "ollama": {
+        "baseUrl": "http://127.0.0.1:11434",
+        "api": "ollama",
+        "apiKey": "ollama-local",
+        "models": [
+          {
+            "id": "qwen2.5:7b",
+            "name": "Qwen 2.5 7B",
+            "reasoning": false,
+            "input": ["text"],
+            "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 },
+            "contextWindow": 32768,
+            "maxTokens": 8192
+          },
+          {
+            "id": "phi4-mini:latest",
+            "name": "Phi 4 Mini",
+            "reasoning": false,
+            "input": ["text"],
+            "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 },
+            "contextWindow": 16384,
+            "maxTokens": 4096
+          }
+        ]
+      }
+    }
+  }
+}
