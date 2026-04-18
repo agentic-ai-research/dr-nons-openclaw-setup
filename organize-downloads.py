@@ -7,15 +7,28 @@ Usage:
   python3 organize-downloads.py --move   # actually move files
   python3 organize-downloads.py --auto   # same as --move (for cron)
 
-Destination: ~/Library/CloudStorage/GoogleDrive-peterkarl.aair@gmail.com/My Drive/
+Destination: ~/Library/CloudStorage/GoogleDrive-<your-account>/My Drive/
 """
 import os, sys, shutil, glob
 
 DOWNLOADS = os.path.expanduser("~/Downloads")
-GDRIVE = os.path.expanduser(
-    "~/Library/CloudStorage/GoogleDrive-peterkarl.aair@gmail.com/My Drive"
-)
 CREDENTIALS = os.path.expanduser("~/.openclaw/credentials")
+
+def find_gdrive():
+    """Auto-detect Google Drive path for any Google account."""
+    cloud = os.path.expanduser("~/Library/CloudStorage")
+    if os.path.isdir(cloud):
+        for entry in os.listdir(cloud):
+            if entry.startswith("GoogleDrive-"):
+                candidate = os.path.join(cloud, entry, "My Drive")
+                if os.path.isdir(candidate):
+                    return candidate
+    legacy = os.path.expanduser("~/Google Drive/My Drive")
+    if os.path.isdir(legacy):
+        return legacy
+    raise RuntimeError("Google Drive not found. Is Google Drive for Desktop installed?")
+
+GDRIVE = find_gdrive()
 
 # Never touch these dirs/files inside Downloads
 SKIP = {"Google Drive", "Videos", ".DS_Store"}

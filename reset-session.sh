@@ -23,7 +23,7 @@ log "=== Session reset started ==="
 
 # 0. Validate openclaw.json before touching anything
 VALIDATION=$(/opt/homebrew/opt/node/bin/node \
-    /Users/axiom/.gemini/antigravity/scratch/openclaw/dist/index.js \
+    "$(npm root -g 2>/dev/null)/openclaw/dist/index.js" \
     gateway --port 18799 2>&1 | head -5 || true)
 if echo "$VALIDATION" | grep -q "Config invalid"; then
     log "ERROR: openclaw.json is invalid. Aborting reset."
