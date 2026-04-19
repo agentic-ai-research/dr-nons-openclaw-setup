@@ -1,0 +1,80 @@
+{
+  "gateway": {
+    "mode": "local",
+    "auth": {
+      "mode": "token",
+      "token": "YOUR_GATEWAY_TOKEN"
+    }
+  },
+  "plugins": {
+    "entries": {
+      "ollama": {
+        "enabled": false
+      },
+      "active-memory": {
+        "enabled": false
+      },
+      "openai": {
+        "enabled": true
+      }
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "openai/gpt-4o-mini"
+      },
+      "llm": {
+        "idleTimeoutSeconds": 0
+      },
+      "compaction": {
+        "reserveTokensFloor": 8000
+      },
+      "models": {
+        "openai/gpt-4o-mini": {}
+      }
+    }
+  },
+  "models": {
+    "providers": {
+      "openai": {
+        "baseUrl": "https://api.openai.com/v1",
+        "api": "openai-responses",
+        "apiKey": "YOUR_OPENAI_API_KEY",
+        "models": [
+          {
+            "id": "gpt-4o-mini",
+            "name": "GPT-4o Mini",
+            "reasoning": false,
+            "input": ["text", "image"],
+            "cost": {
+              "input": 0.15,
+              "output": 0.6,
+              "cacheRead": 0.075,
+              "cacheWrite": 0
+            },
+            "contextWindow": 128000,
+            "maxTokens": 16384
+          }
+        ]
+      }
+    }
+  },
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "botToken": "YOUR_TELEGRAM_BOT_TOKEN",
+      "webhookUrl": "https://YOUR_FLY_RELAY.fly.dev/",
+      "webhookSecret": "YOUR_WEBHOOK_SECRET"
+    },
+    "discord": {
+      "enabled": false,
+      "token": "YOUR_DISCORD_TOKEN_IF_NEEDED"
+    }
+  },
+  "update": {
+    "auto": {
+      "enabled": true
+    }
+  }
+}

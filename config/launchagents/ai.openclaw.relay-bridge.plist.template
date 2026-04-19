@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Relay Bridge LaunchAgent template.
+  Polls Fly.io relay for Telegram messages and forwards to local gateway.
+  Starts on boot, restarts on crash, survives sleep/wake cycles.
+
+  1. Replace YOUR_USERNAME with your macOS username (whoami)
+  2. Save to ~/Library/LaunchAgents/ai.openclaw.relay-bridge.plist
+  3. Load: launchctl load ~/Library/LaunchAgents/ai.openclaw.relay-bridge.plist
+-->
 <plist version="1.0">
   <dict>
     <key>Label</key>
@@ -12,7 +21,6 @@
     <key>ThrottleInterval</key>
     <integer>5</integer>
 
-    <!-- Replace /Users/YOUR_USERNAME with your actual home directory -->
     <key>ProgramArguments</key>
     <array>
       <string>/opt/homebrew/bin/python3</string>

@@ -1,0 +1,21 @@
+# OpenClaw Crontab
+# Install: crontab -e → paste this → save
+# Verify:  crontab -l
+#
+# IMPORTANT: Times are Bangkok local (UTC+7).
+# If your system clock is UTC, add 7 hours to each time below.
+# Check your timezone: date +%Z
+
+# Morning briefing — 7:00 AM Bangkok every day
+# Replace YOUR_CHAT_ID with your Telegram chat ID (get it from @userinfobot)
+0 7 * * * /opt/homebrew/bin/python3 /Users/YOUR_USERNAME/.openclaw/workspace/skills/morning-briefing/scripts/briefing.py YOUR_CHAT_ID >> /Users/YOUR_USERNAME/.openclaw/logs/morning-briefing.log 2>&1
+
+# Watchdog — every 5 minutes: checks gateway + relay-bridge, auto-restarts if down, Telegram alert
+*/5 * * * * /opt/homebrew/bin/python3 /Users/YOUR_USERNAME/.openclaw/scripts/watchdog.py >> /Users/YOUR_USERNAME/.openclaw/logs/watchdog.log 2>&1
+
+# Weekly Downloads organizer — Sunday 9:00 AM Bangkok
+0 9 * * 0 /opt/homebrew/bin/python3 /Users/YOUR_USERNAME/.openclaw/scripts/organize-downloads.py --move >> /Users/YOUR_USERNAME/.openclaw/logs/organize-downloads.log 2>&1
+
+# Weekly session reset — Sunday 3:00 AM Bangkok (prevents context bloat)
+# Note: watchdog also resets sessions >400KB automatically — this is the backstop
+0 3 * * 0 bash /Users/YOUR_USERNAME/.openclaw/scripts/reset-session.sh >> /Users/YOUR_USERNAME/.openclaw/logs/reset-session.log 2>&1

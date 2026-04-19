@@ -1,0 +1,42 @@
+# Credentials and secrets — NEVER commit these
+*.pkl
+*.pem
+*token*.txt
+*token*.json
+*secret*.json
+*apikey*
+*.env
+credentials/
+
+# State files with personal data
+state/
+*.state.json
+
+# Personal memory files
+self-improving/
+memory.md
+corrections.md
+
+# Large media
+media/
+*.mp4
+*.mov
+*.mkv
+*.jpg
+*.jpeg
+*.png
+*.pdf
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+
+# Live openclaw.json (template is committed; live file with secrets is not)
+openclaw.json

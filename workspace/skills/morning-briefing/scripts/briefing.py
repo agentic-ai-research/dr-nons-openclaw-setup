@@ -13,6 +13,7 @@ TELEGRAM_API   = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
 TOKEN_FILE     = os.path.expanduser("~/.openclaw/credentials/google-token.pkl")
 GITHUB_TOKEN   = open(os.path.expanduser("~/.openclaw/credentials/github-token.txt")).read().strip()
 LAT, LON       = 13.7563, 100.5018
+CHAT_ID        = sys.argv[1] if len(sys.argv) > 1 else None
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -269,18 +270,6 @@ def section_newsletters():
     except Exception as e:
         return f"📧 Newsletters: unavailable ({e})"
 
-def section_flights():
-    """Check tracked flight routes and return alerts for any below threshold."""
-    try:
-        import sys as _sys
-        _sys.path.insert(0, os.path.expanduser(
-            "~/.openclaw/workspace/skills/flight-monitor/scripts"))
-        from flight_monitor import get_briefing_section
-        result = get_briefing_section()
-        return result  # None if no alerts
-    except Exception as e:
-        return None  # Silently skip if flight monitor not set up
-
 # ── main ─────────────────────────────────────────────────────────────────────
 
 def main():
@@ -306,11 +295,8 @@ def main():
         for future in as_completed(futures):
             results[futures[future]] = future.result()
 
-    # Flight alerts (synchronous — reads local state, no network if no routes tracked)
-    results["flights"] = section_flights()
-
-    # Assemble in order — skip None sections (flights if no routes tracked)
-    order = ["weather", "markets", "calendar", "flights", "github", "tech_news", "newsletters"]
+    # Assemble in order
+    order = ["weather", "markets", "calendar", "github", "tech_news", "newsletters"]
     sections = [header] + [results[k] for k in order if results.get(k) is not None]
     message = "\n\n".join(sections)
 

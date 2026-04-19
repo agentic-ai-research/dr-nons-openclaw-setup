@@ -1,10 +1,12 @@
 # Dr Non's OpenClaw Setup
 
-**A personal AI gateway that runs 24/7 on your phone — without destroying your RAM or your wallet.**
+**A personal AI gateway — Telegram-first, Google Workspace integrated, Thai-language capable.**
 
-This is the honest, battle-scarred record of how I got [OpenClaw](https://github.com/openclaw/openclaw) actually working on a 16GB Mac. Not the marketing version. The real one — including every wall I hit, every thing I misunderstood, and the exact config that finally worked.
+This is the honest, battle-scarred record of getting [OpenClaw](https://github.com/openclaw/openclaw) actually working in daily production. Not the marketing version. Every wall hit, every mistake made, every fix found — documented so you don't repeat any of it.
 
-If you're on 16GB RAM and wondering why your bot crashes, sleeps, or just stares at you blankly — this is for you.
+**Moving to a new machine?** Read [SETUP.md](SETUP.md) first. It's the migration bible.
+
+If you're on 16GB RAM (or an old MacBook) wondering why your bot crashes, sleeps, or stares at you blankly — this is for you.
 
 ---
 
@@ -224,7 +226,8 @@ OpenClaw's power comes from skills — Python scripts the bot runs when you ask 
 
 ### Morning Briefing
 
-Runs at 7:00 AM Bangkok time (00:00 UTC) via cron. Covers:
+Runs at 7:00 AM Bangkok time via cron (`0 7 * * *`).
+⚠️ Common mistake: `0 0 * * *` is midnight, not 7am. See `config/crontab.template`. Covers:
 
 - Bangkok weather + AQI (Open-Meteo primary, wttr.in fallback)
 - Markets: BTC price, Gold, Oil (WTI), USD/THB rate
@@ -280,6 +283,29 @@ Check my flights
 ```
 
 Routes stored in `~/.openclaw/workspace/state/flights.json`. Scrapes Google Flights via headless browser. Alerts appear in morning briefing when prices drop below threshold.
+
+---
+
+## Stability Infrastructure (The Stuff That Keeps It Running)
+
+### Watchdog (Most Important)
+`scripts/watchdog.py` runs every 5 minutes via cron. It:
+- Pings the gateway health endpoint
+- Checks relay-bridge is alive
+- Auto-restarts either if they're down
+- **Sends you a Telegram alert** when it does anything
+- Auto-resets the session if context exceeds 400KB
+
+Without this, the bot can be silent for hours before you notice. This alone would have caught a Discord-triggered crash loop that ran all night.
+
+### Crash-Proof Gateway Startup
+`scripts/start-gateway.sh` explicitly kills any process on port 8787 before starting. Prevents EADDRINUSE even if the gateway crashes mid-operation.
+
+### Relay Bridge with Retry Queue
+`scripts/relay-bridge.py` polls Fly.io relay every 2s. If the gateway isn't ready, messages go into a pending queue and are retried on every loop — messages survive machine sleep, gateway restarts, and cold boots.
+
+### Session Auto-Reset
+Handled by watchdog at 400KB. Weekly cron reset on Sunday as backstop. Prevents context bloat from causing erratic bot behavior.
 
 ---
 

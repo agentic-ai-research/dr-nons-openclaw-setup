@@ -8,17 +8,12 @@ Resilience features:
 - Startup wait: on launch, waits up to 60s for gateway to become available
 - Survives gateway restarts, sleep/wake cycles, and cold boots
 """
-import time, json, urllib.request, urllib.error, sys, collections, os
+import time, json, urllib.request, urllib.error, sys, collections
 
-# Load relay config from openclaw.json
-# Add to openclaw.json: "relay": {"url": "https://YOUR-RELAY.fly.dev/", "secret": "YOUR_WEBHOOK_SECRET"}
-_cfg = json.load(open(os.path.expanduser("~/.openclaw/openclaw.json")))
-_relay = _cfg.get("relay", {})
-
-RELAY_URL     = _relay.get("url", "https://YOUR-RELAY.fly.dev/")
+RELAY_URL     = "https://dnoc-tg-relay.fly.dev/"
 LOCAL_WEBHOOK = "http://127.0.0.1:8787/telegram-webhook"
 LOCAL_HEALTH  = "http://127.0.0.1:18789/health"
-SECRET        = _relay.get("secret", "")
+SECRET        = "a4963b87d7d67c93a00517b5117dd4f45902e11a548d2e5ecdf339926b4c241c"
 POLL_INTERVAL = 2   # seconds between relay polls
 MAX_PENDING   = 500 # safety cap on undelivered message queue
 
@@ -109,6 +104,11 @@ while True:
                 else:
                     print("WARNING: pending queue full — oldest message dropped", flush=True)
     except Exception as e:
-        print(f"poll error: {e}", flush=True)
+        err_str = str(e)
+        # Connection reset / timeout from Fly.io is expected on idle connections — suppress log spam
+        if any(s in err_str for s in ("Connection reset by peer", "timed out", "UND_ERR")):
+            pass  # silent — will retry in 2s
+        else:
+            print(f"poll error: {e}", flush=True)
 
     time.sleep(POLL_INTERVAL)
