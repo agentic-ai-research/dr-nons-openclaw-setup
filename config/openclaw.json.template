@@ -22,7 +22,7 @@
   "agents": {
     "defaults": {
       "model": {
-        "primary": "openai/gpt-4o-mini"
+        "primary": "gemini/gemini-flash-latest"
       },
       "llm": {
         "idleTimeoutSeconds": 0
@@ -31,7 +31,8 @@
         "reserveTokensFloor": 8000
       },
       "models": {
-        "openai/gpt-4o-mini": {}
+        "openai/gpt-4o-mini": {},
+        "gemini/gemini-flash-latest": {}
       }
     }
   },
@@ -46,7 +47,10 @@
             "id": "gpt-4o-mini",
             "name": "GPT-4o Mini",
             "reasoning": false,
-            "input": ["text", "image"],
+            "input": [
+              "text",
+              "image"
+            ],
             "cost": {
               "input": 0.15,
               "output": 0.6,
@@ -55,6 +59,30 @@
             },
             "contextWindow": 128000,
             "maxTokens": 16384
+          }
+        ]
+      },
+      "gemini": {
+        "baseUrl": "https://generativelanguage.googleapis.com/v1beta/openai/",
+        "api": "openai-completions",
+        "apiKey": "YOUR_GEMINI_API_KEY",
+        "models": [
+          {
+            "id": "gemini-flash-latest",
+            "name": "Gemini Flash (Latest)",
+            "reasoning": false,
+            "input": [
+              "text",
+              "image"
+            ],
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            },
+            "contextWindow": 1000000,
+            "maxTokens": 8192
           }
         ]
       }

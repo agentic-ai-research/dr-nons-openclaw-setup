@@ -128,7 +128,8 @@ ask TAVILY_KEY    "Tavily API key (tvly-...)" "" secret
 ask TG_TOKEN      "Telegram bot token (from BotFather)" "" secret
 ask TG_CHAT_ID    "Your Telegram chat ID (from @userinfobot — skip if unknown)" ""
 ask GH_TOKEN      "GitHub personal access token (for morning briefing)" "" secret
-ask THAILLM_KEY   "ThaiLLM API key (free — skip if not needed)" "" secret
+ask GEMINI_KEY    "Google Gemini API key (from aistudio.google.com/apikey — FREE)" "" secret
+ ask THAILLM_KEY   "ThaiLLM API key (free — skip if not needed)" "" secret
 ask RELAY_URL     "Fly.io relay URL" "https://dnoc-tg-relay.fly.dev/"
 ask WEBHOOK_SECRET "Relay webhook secret" "$(python3 -c 'import secrets; print(secrets.token_hex(32))')"
 ask GATEWAY_TOKEN  "Gateway auth token" "$(python3 -c 'import secrets; print(secrets.token_hex(24))')"
@@ -152,6 +153,7 @@ ok "Directory structure created"
 # ── Step 5: Credentials files ─────────────────────────────────────────────────
 step "5/9" "Writing credentials"
 
+[ -n "$GEMINI_KEY" ]  && echo "$GEMINI_KEY"  > "$OPENCLAW_DIR/credentials/gemini-key.txt"
 [ -n "$TG_TOKEN" ]    && echo "$TG_TOKEN"    > "$OPENCLAW_DIR/credentials/telegram-token.txt"
 [ -n "$GH_TOKEN" ]    && echo "$GH_TOKEN"    > "$OPENCLAW_DIR/credentials/github-token.txt"
 chmod 600 "$OPENCLAW_DIR/credentials/"* 2>/dev/null || true
