@@ -32,6 +32,8 @@
       },
       "models": {
         "openai/gpt-4o-mini": {},
+        "groq/llama-3.3-70b-versatile": {},
+        "ollama/qwen2.5:7b": {},
         "gemini/gemini-flash-latest": {}
       }
     }
@@ -59,6 +61,52 @@
             },
             "contextWindow": 128000,
             "maxTokens": 16384
+          }
+        ]
+      },
+      "groq": {
+        "baseUrl": "https://api.groq.com/openai/v1",
+        "api": "openai-completions",
+        "apiKey": "YOUR_GROQ_API_KEY",
+        "models": [
+          {
+            "id": "llama-3.3-70b-versatile",
+            "name": "Llama 3.3 70B (Groq)",
+            "reasoning": false,
+            "input": [
+              "text"
+            ],
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            },
+            "contextWindow": 128000,
+            "maxTokens": 32768
+          }
+        ]
+      },
+      "openrouter": {
+        "baseUrl": "https://api.groq.com/openai/v1",
+        "api": "openai-completions",
+        "apiKey": "YOUR_GROQ_API_KEY",
+        "models": [
+          {
+            "id": "google/gemini-2.5-flash",
+            "name": "Groq Llama (rate-limit fallback)",
+            "reasoning": false,
+            "input": [
+              "text"
+            ],
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            },
+            "contextWindow": 128000,
+            "maxTokens": 32768
           }
         ]
       },
@@ -92,7 +140,7 @@
     "telegram": {
       "enabled": true,
       "botToken": "YOUR_TELEGRAM_BOT_TOKEN",
-      "webhookUrl": "https://YOUR_FLY_RELAY.fly.dev/",
+      "webhookUrl": "https://dnoc-tg-relay.fly.dev/",
       "webhookSecret": "YOUR_WEBHOOK_SECRET"
     },
     "discord": {
