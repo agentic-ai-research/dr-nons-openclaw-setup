@@ -24,14 +24,23 @@ def fetch(url, headers=None, timeout=10):
 
 def openai_summarize(text, prompt_prefix, max_tokens=400):
     config = json.load(open(os.path.expanduser("~/.openclaw/openclaw.json")))
-    key = config["models"]["providers"]["openai"]["apiKey"]
+    # Use Gemini (free) — fall back to OpenAI if Gemini key unavailable
+    gemini_cfg = config.get("models", {}).get("providers", {}).get("gemini")
+    if gemini_cfg and gemini_cfg.get("apiKey"):
+        key = gemini_cfg["apiKey"]
+        model = "gemini-flash-latest"
+        url = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+    else:
+        key = config["models"]["providers"]["openai"]["apiKey"]
+        model = "gpt-4o-mini"
+        url = "https://api.openai.com/v1/chat/completions"
     payload = json.dumps({
-        "model": "gpt-4o-mini",
+        "model": model,
         "messages": [{"role": "user", "content": f"{prompt_prefix}\n\n{text[:3000]}"}],
         "max_tokens": max_tokens
     }).encode()
-    req = urllib.request.Request("https://api.openai.com/v1/chat/completions",
-        data=payload, headers={"Content-Type":"application/json","Authorization":f"Bearer {key}"})
+    req = urllib.request.Request(url, data=payload,
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"})
     with urllib.request.urlopen(req, timeout=30) as r:
         return json.loads(r.read())["choices"][0]["message"]["content"].strip()
 
