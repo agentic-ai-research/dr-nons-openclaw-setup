@@ -16,10 +16,6 @@ if [ -n "$PORT_PID" ]; then
     sleep 1
 fi
 
-pkill -f relay-bridge.py 2>/dev/null; sleep 1
-python3 "$HOME/.openclaw/scripts/relay-bridge.py" >> "$HOME/.openclaw/logs/relay-bridge.log" 2>&1 &
-log "Relay bridge started (pid $!)"
-
 log "Starting gateway..."
 exec /opt/homebrew/opt/node/bin/node \
     /Users/axiom/.gemini/antigravity/scratch/openclaw/dist/index.js \
